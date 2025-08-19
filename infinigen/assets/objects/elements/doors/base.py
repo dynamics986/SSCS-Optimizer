@@ -1022,6 +1022,9 @@ class BaseDoorFactory(AssetFactory):
         # if export:
         butil.apply_modifiers(door_joined, geometry_node_join.__name__)
 
+        # door_joined.category = "Door"
+        self.assign_category(door_joined)
+
         return door_joined
 
     def make_panels(self):

@@ -155,4 +155,7 @@ class TowelFactory(AssetFactory):
             obj, geo_extension, apply=True, input_args=[uniform(0.05, 0.1)]
         )
         subsurf(obj, 1)
+
+        # obj.category = "Towel"
+        self.assign_category(obj)
         return obj

@@ -399,4 +399,6 @@ class MultifridgeFactory(AssetFactory):
 
         obj = butil.join_objects(objs)
 
+        # obj.category = "Fridge"
+        self.assign_category(obj)
         return obj

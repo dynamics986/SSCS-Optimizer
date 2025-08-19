@@ -64,6 +64,7 @@ class SimulatedAnnealingSolver:
 
         self.eval_memo = {}
         self.stats = []
+        self.dynamic_temp_factor = 1.0
 
     def save_stats(self, path):
         if len(self.stats) == 0:
@@ -218,10 +219,15 @@ class SimulatedAnnealingSolver:
             logger.debug(f"{move_gen=} produced {retry} attempts and none were valid")
 
         return move, None, retry
-
+    '''
+    def set_dynamic_temp_factor(self, factor):
+        self.dynamic_temp_factor = factor
+    '''
     def curr_temp(self) -> float:
         temp = self.initial_temp * self.cooling_rate**self.curr_iteration
         temp = np.clip(temp, self.final_temp, self.initial_temp)
+        # appended by Francis
+        ### temp = temp * self.dynamic_temp_factor
         return temp
 
     def metrop_hastings_with_viol(

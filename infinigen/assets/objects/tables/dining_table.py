@@ -327,7 +327,8 @@ class TableDiningFactory(AssetFactory):
         )
         tagging.tag_system.relabel_obj(obj)
         assert tagging.tagged_face_mask(obj, {t.Subpart.SupportSurface}).sum() != 0
-
+        # obj.category = "Table"
+        self.assign_category(obj)
         return obj
 
     def finalize_assets(self, assets):

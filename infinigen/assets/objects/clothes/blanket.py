@@ -38,6 +38,9 @@ class BlanketFactory(AssetFactory):
         butil.apply_transform(obj)
         unwrap_faces(obj)
         surface.assign_material(obj, self.surface)
+
+        # obj.category = "Blanket"
+        self.assign_category(obj)
         return obj
 
     def fold(self, obj):

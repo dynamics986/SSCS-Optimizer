@@ -4243,4 +4243,6 @@ class SinglefridgeFactory(AssetFactory):
             ng_inputs=self.sample_parameters(),
         )
 
+        # obj.category = "Fridge"
+        self.assign_category(obj)
         return obj

@@ -51,6 +51,9 @@ class PalletFactory(AssetFactory):
         support = self.make_support()
         support.location[-1] = 2 * self.thickness
         obj = join_objects([horizontal, horizontal_, vertical, vertical_, support])
+        
+        # obj.category = "Cookware"
+        self.assign_category(obj)
         return obj
 
     def make_vertical(self):

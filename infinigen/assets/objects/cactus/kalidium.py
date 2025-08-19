@@ -119,6 +119,9 @@ class KalidiumBaseCactusFactory(BaseCactusFactory):
         subsurface2face_size(obj, face_size)
         origin2lowest(obj)
         tag_object(obj, "kalidium_cactus")
+
+        # obj.category = "Cactus"
+        self.assign_category(obj)
         return obj
 
     @staticmethod

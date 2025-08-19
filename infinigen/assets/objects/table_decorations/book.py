@@ -62,6 +62,8 @@ class BookFactory(AssetFactory):
         # noinspection PyArgumentList
         obj = fn(width, height, depth)
 
+        # obj.category = "Book"
+        self.assign_category(obj)
         return obj
 
     def finalize_assets(self, assets):

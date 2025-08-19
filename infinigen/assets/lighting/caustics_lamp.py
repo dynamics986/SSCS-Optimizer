@@ -153,6 +153,9 @@ class CausticsLampFactory(AssetFactory):
 
         nw = NodeWrangler(lamp.data.node_tree)
         shader_caustic_lamp(nw, params=self.params)
+
+        # lamp.category = "Lamp"
+        self.assign_category(lamp)
         return lamp
 
 

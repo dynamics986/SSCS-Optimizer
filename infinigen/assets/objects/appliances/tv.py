@@ -123,6 +123,9 @@ class TVFactory(AssetFactory):
 
         obj.rotation_euler[2] = np.pi / 2
         butil.apply_transform(obj)
+
+        # obj.category = "TV"
+        self.assign_category(obj)
         return obj
 
     def make_screen(self, obj):

@@ -102,6 +102,8 @@ class VaseFactory(AssetFactory):
         butil.modify_mesh(obj, "SOLIDIFY", apply=True, thickness=0.002)
         butil.modify_mesh(obj, "SUBSURF", apply=True, levels=2, render_levels=2)
 
+        # obj.category = "Vase"
+        self.assign_category(obj)
         return obj
 
     def finalize_assets(self, assets):

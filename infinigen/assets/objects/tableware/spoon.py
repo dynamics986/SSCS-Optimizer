@@ -85,4 +85,7 @@ class SpoonFactory(TablewareFactory):
         subsurf(obj, 2)
         obj.scale = [self.scale] * 3
         butil.apply_transform(obj)
+
+        # obj.category = "Cookware"
+        self.assign_category(obj)
         return obj

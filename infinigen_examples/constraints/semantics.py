@@ -46,7 +46,7 @@ def home_asset_usage():
         tableware.PanFactory,
         tableware.PotFactory,
         tableware.CupFactory,
-    }
+    } 
     used_as[Semantics.Cookware] = {tableware.PotFactory, tableware.PanFactory}
     used_as[Semantics.Utensils] = {
         tableware.SpoonFactory,
@@ -121,7 +121,7 @@ def home_asset_usage():
         shelves.SimpleBookcaseFactory,
         shelves.CellShelfFactory,
         shelves.LargeShelfFactory,
-        # static_assets.StaticShelfFactory,
+        static_assets.StaticShelfFactory,
         shelves.KitchenCabinetFactory,
         shelves.SingleCabinetFactory,
     }
@@ -138,7 +138,7 @@ def home_asset_usage():
             tables.TableCocktailFactory,
             shelves.SimpleDeskFactory,
             tables.CoffeeTableFactory,
-            # static_assets.StaticTableFactory,
+            static_assets.StaticTableFactory,
         },
     )
 
@@ -150,7 +150,7 @@ def home_asset_usage():
 
     used_as[Semantics.LoungeSeating] = {
         seating.SofaFactory,
-        # static_assets.StaticSofaFactory,
+        static_assets.StaticSofaFactory,
         seating.ArmChairFactory,
     }
 
@@ -187,7 +187,7 @@ def home_asset_usage():
             bathroom.ToiletFactory,
             bathroom.BathtubFactory,
             seating.SofaFactory,
-            # static_assets.StaticSofaFactory,
+            static_assets.StaticSofaFactory,
             shelves.TVStandFactory,
         },
     )
@@ -333,3 +333,14 @@ def home_asset_usage():
     # endregion
 
     return used_as
+
+# === Automatic generation of factory-to-category name mappings ===
+FACTORY_TO_CATEGORY = {}
+for semantic, factories in home_asset_usage().items():
+    # semantic can be Semantics.Table, Semantics.Chair ...
+    if hasattr(semantic, 'name'):
+        category = semantic.name.lower()
+    else:
+        category = str(semantic).lower()
+    for factory in factories:
+        FACTORY_TO_CATEGORY[factory] = category

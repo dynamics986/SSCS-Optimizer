@@ -123,15 +123,32 @@ def cam_name(cam_rig, subcam):
 
 
 def get_id(camera: bpy.types.Object):
-    _, rig, subcam = camera.name.split("_")
+    # Handle Blender's automatic renaming (e.g., camera_1_0.001)
+    import re
+    # Remove any .001, .002, etc. suffix
+    base_name = re.sub(r'\.\d+$', '', camera.name)
+    _, rig, subcam = base_name.split("_")
     return int(rig), int(subcam)
 
+
+def cleanup_existing_cameras():
+    """Remove any existing cameras to avoid naming conflicts"""
+    if "camera_rigs" in bpy.data.collections:
+        for obj in bpy.data.collections["camera_rigs"].objects:
+            bpy.data.objects.remove(obj, do_unlink=True)
+    
+    if "cameras" in bpy.data.collections:
+        for obj in bpy.data.collections["cameras"].objects:
+            bpy.data.objects.remove(obj, do_unlink=True)
 
 @gin.configurable
 def spawn_camera_rigs(
     camera_rig_config,
     n_camera_rigs,
 ) -> list[bpy.types.Object]:
+    # Clean up any existing cameras to avoid naming conflicts
+    cleanup_existing_cameras()
+    
     rigs_col = butil.get_collection("camera_rigs")
     cams_col = butil.get_collection("cameras")
 
@@ -141,7 +158,19 @@ def spawn_camera_rigs(
 
         for j, config in enumerate(camera_rig_config):
             cam = spawn_camera()
-            cam.name = cam_name(i, j)
+            
+            # Ensure unique camera name
+            base_name = cam_name(i, j)
+            cam.name = base_name
+            
+            # If the name already exists, find a unique name
+            counter = 1
+            while cam.name in bpy.data.objects:
+                cam.name = f"{base_name}.{counter:03d}"
+                counter += 1
+                if counter > 999:  # Prevent infinite loop
+                    break
+            
             cam.parent = rig_parent
             cam.location = config["loc"]
             cam.rotation_euler = config["rot_euler"]
@@ -162,8 +191,30 @@ def get_camera_rigs() -> list[bpy.types.Object]:
     for i, rig in enumerate(result):
         for j, child in enumerate(rig.children):
             expected = cam_name(i, j)
+            # Handle Blender's automatic renaming (e.g., camera_1_0.001)
             if child.name != expected:
-                raise ValueError(f"child {i=} {j}  was {child.name=}, {expected=}")
+                # Check if the name starts with the expected pattern and ends with a number suffix
+                import re
+                pattern = f"^{expected}\\.\\d+$"
+                if re.match(pattern, child.name):
+                    # This is a Blender auto-renamed camera, accept it
+                    continue
+                else:
+                    # More flexible check: extract camera indices from the actual name
+                    # Handle cases like camera_0_0.001 when expecting camera_1_0
+                    camera_pattern = r"^camera_(\d+)_(\d+)(?:\.\d+)?$"
+                    match = re.match(camera_pattern, child.name)
+                    if match:
+                        actual_rig, actual_subcam = int(match.group(1)), int(match.group(2))
+                        # If the subcam index matches but rig index is different, 
+                        # this might be a leftover camera from a previous run
+                        if actual_subcam == j:
+                            # Accept this camera as it has the correct subcam index
+                            continue
+                        else:
+                            raise ValueError(f"child {i=} {j}  was {child.name=}, {expected=} (subcam mismatch)")
+                    else:
+                        raise ValueError(f"child {i=} {j}  was {child.name=}, {expected=} (invalid format)")
 
     return result
 

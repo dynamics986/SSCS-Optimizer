@@ -78,6 +78,8 @@ class CactusFactory(AssetFactory):
 
         tagging.tag_object(obj, "cactus")
 
+        # obj.category = "Cactus"
+        self.assign_category(obj)
         return obj
 
     @staticmethod

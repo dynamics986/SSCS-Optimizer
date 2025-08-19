@@ -1461,7 +1461,8 @@ class SofaFactory(AssetFactory):
 
         with butil.SelectObjects(hipoly):
             bpy.ops.object.shade_smooth()
-
+        # hipoly.category = "Sofa"
+        self.assign_category(hipoly)
         return hipoly
 
 

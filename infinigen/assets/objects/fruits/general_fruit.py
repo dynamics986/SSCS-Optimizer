@@ -227,5 +227,8 @@ class FruitFactoryGeneralFruit(AssetFactory):
         # TODO remove when empty materials from geonodes is debugged
         butil.purge_empty_materials(obj)
 
-        tag_object(obj, "fruit_" + self.name)
+        tag_object(obj, "fruit_" + self.name) 
+
+        # obj.category = "Fruit"
+        self.assign_category(obj)
         return obj

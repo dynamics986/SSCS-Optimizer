@@ -1349,7 +1349,9 @@ class CabinetDoorBaseFactory(AssetFactory):
 
         if params.get("ret_params", False):
             return obj, obj_params
-
+    
+        # obj.category = "Cabinet"
+        self.assign_category(obj)
         return obj
 
 
@@ -1570,6 +1572,8 @@ class CabinetBaseFactory(AssetFactory):
             },
         )
         butil.delete([shelf, left_door, right_door])
+        # obj.category = "Cabinet"
+        self.assign_category(obj)
         return obj
 
 

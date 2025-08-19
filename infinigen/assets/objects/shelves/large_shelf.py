@@ -915,6 +915,8 @@ class LargeShelfBaseFactory(AssetFactory):
 
         tagging.tag_system.relabel_obj(obj)
 
+        # obj.category = "Shelf"
+        self.assign_category(obj)
         return obj
 
 

@@ -42,7 +42,7 @@ class InvisibleToCamera:
     def apply(self, obj, selection=None, **kwargs):
         if not isinstance(obj, list):
             obj = [obj]
-
+#Runtime Error Here
         for o in obj:
             with butil.SelectObjects(o):
                 for i in range(len(o.material_slots)):

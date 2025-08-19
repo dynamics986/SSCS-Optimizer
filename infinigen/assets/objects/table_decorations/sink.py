@@ -119,6 +119,9 @@ class SinkFactory(AssetFactory):
         tap = self.tap_factory.spawn_asset(i, loc=tap_loc, rot=(0, 0, 0))
         tap.parent = obj
 
+
+        # obj.category = "Sink"
+        self.assign_category(obj)
         return obj
 
     def finalize_assets(self, assets):

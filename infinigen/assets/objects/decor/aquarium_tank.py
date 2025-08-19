@@ -91,6 +91,9 @@ class AquariumTankFactory(AssetFactory):
         obj = join_objects(parts)
         obj.rotation_euler[-1] = np.pi / 2
         butil.apply_transform(obj)
+        
+        # obj.category = "AquariumTank"
+        self.assign_category(obj)
         return obj
 
     def make_belts(self):

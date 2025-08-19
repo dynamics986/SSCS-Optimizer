@@ -101,7 +101,9 @@ class BeverageFridgeFactory(AssetFactory):
             apply=True,
         )
         obj = add_bevel(obj, bevel_edges, offset=0.01)
-
+       
+        # obj.category = "Fridge"
+        self.assign_category(obj)
         return obj
 
     def finalize_assets(self, assets):

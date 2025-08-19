@@ -349,6 +349,8 @@ class KitchenCabinetBaseFactory(AssetFactory):
             join_objs.append(c[0])
 
             # butil.delete(c[:1])
+        if not join_objs:
+            return bpy.data.objects.new('empty_joined_obj', None)
         obj = butil.join_objects(join_objs)
         tagging.tag_system.relabel_obj(obj)
 

@@ -96,6 +96,8 @@ class CoralFactory(AssetFactory):
             )
             obj = join_objects([obj, t])
 
+        # obj.category = "Coral"
+        self.assign_category(obj)
         return obj
 
     def apply_noise_texture(self, obj):

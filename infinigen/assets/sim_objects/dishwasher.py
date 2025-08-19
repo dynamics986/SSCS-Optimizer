@@ -4151,4 +4151,6 @@ class DishwasherFactory(AssetFactory):
             ng_inputs=self.sample_parameters(),
         )
 
+        # obj.category = "Dishwasher"
+        self.assign_category(obj)
         return obj

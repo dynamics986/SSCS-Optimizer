@@ -5450,4 +5450,6 @@ class LampFactory(AssetFactory):
             ng_inputs=self.sample_parameters(),
         )
 
+        # obj.category = "Lamp"
+        self.assign_category(obj)
         return obj

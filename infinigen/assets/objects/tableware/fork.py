@@ -91,6 +91,9 @@ class ForkFactory(TablewareFactory):
         subsurf(obj, 1)
         obj.scale = [self.scale] * 3
         butil.apply_transform(obj)
+
+        # obj.category = "Cookware"
+        self.assign_category(obj)
         return obj
 
     def make_cuts(self, obj):

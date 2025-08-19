@@ -109,10 +109,24 @@ def handle_geo_modifiers(obj, export_usd):
         realizeInstances(obj)
 
 
+def is_fully_visible(obj):
+    # Check object itself
+    if getattr(obj, 'hide_viewport', False) or getattr(obj, 'hide_render', False):
+        return False
+    # Check all parent collections recursively
+    for col in getattr(obj, 'users_collection', []):
+        parent = col
+        while parent is not None:
+            if getattr(parent, 'hide_viewport', False):
+                return False
+            parent = getattr(parent, 'parent', None)
+    return True
+
+
 def split_glass_mats():
     split_objs = []
     for obj in bpy.data.objects:
-        if obj.hide_render or obj.hide_viewport:
+        if not is_fully_visible(obj):
             continue
         if any(
             exclude in obj.name

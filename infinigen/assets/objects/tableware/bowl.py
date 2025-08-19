@@ -54,4 +54,7 @@ class BowlFactory(TablewareFactory):
         )
         subsurf(obj, 1)
         set_shade_smooth(obj)
+
+        # obj.category = "Cookware"
+        self.assign_category(obj)
         return obj

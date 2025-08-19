@@ -134,6 +134,8 @@ class BathtubFactory(AssetFactory):
         else:
             self.beveler(obj)
 
+        # obj.category = "Bathtub"
+        self.assign_category(obj)
         return obj
 
     def make_freestanding(self):

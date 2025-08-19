@@ -85,6 +85,9 @@ class JarFactory(AssetFactory):
         subsurf(obj, 1, self.cap_subsurf)
         write_attribute(cap, 1, "cap", "FACE")
         obj = join_objects([obj, cap])
+
+        # obj.category = "Bottle"
+        self.assign_category(obj)
         return obj
 
     def finalize_assets(self, assets):

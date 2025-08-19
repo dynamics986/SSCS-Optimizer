@@ -34,6 +34,9 @@ class ChopsticksFactory(TablewareFactory):
             obj = self.make_parallel(obj)
         else:
             obj = self.make_crossed(obj)
+
+        # obj.category = "Cookware"
+        self.assign_category(obj)
         return obj
 
     def make_parallel(self, obj):

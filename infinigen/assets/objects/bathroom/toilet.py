@@ -124,6 +124,9 @@ class ToiletFactory(AssetFactory):
         obj = join_objects([obj, seat, cover, stand, back, tank, hardware])
         obj.rotation_euler[-1] = np.pi / 2
         butil.apply_transform(obj)
+
+        # obj.category = "Toilet"
+        self.assign_category(obj)
         return obj
 
     def build_curve(self):

@@ -69,4 +69,7 @@ class RugFactory(AssetFactory):
         obj = self.build_shape()
         wrap_sides(obj, self.surface, "z", "x", "y")
         butil.modify_mesh(obj, "SOLIDIFY", thickness=self.thickness, offset=1)
+        
+        # obj.category = "Rug"
+        self.assign_category(obj)
         return obj

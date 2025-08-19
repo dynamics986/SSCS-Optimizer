@@ -101,6 +101,8 @@ class DishwasherFactory(AssetFactory):
         )
         obj = add_bevel(obj, bevel_edges, offset=0.01)
 
+        # obj.category = "Dishwasher"
+        self.assign_category(obj)
         return obj
 
     def finalize_assets(self, assets):

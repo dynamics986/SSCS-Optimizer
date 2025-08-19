@@ -265,7 +265,7 @@ def asset_heightmap_simulate(
         source_size = AntLandscapeTileSize / 50
         source_relative_pos = (0, 0, center_height + source_size * 2)
         liquid_type = Materials.Lava
-        domain_location = (0, 0, 4 * AntLandscapeTileSize / 10)
+        domain_ = (0, 0, 4 * AntLandscapeTileSize / 10)
         initial_velo = (0, 0, 7.5)
     elif land_tile_type == LandTile.River:
         source_size = AntLandscapeTileSize / 50
@@ -353,7 +353,7 @@ def make_beach(terrain, obstacles, location=(0, 0, 0), output_folder=None):
     bpy.data.objects["water"].hide_render = True
     bpy.data.objects["water"].hide_viewport = True
     dom = create_flip_fluid_domain(
-        (location[0] - 2.5, location[1], location[2] + 0.6),
+        (location[0] - 2.5, location[1], [2] + 0.6),
         start_frame=0,
         resolution=400,
         simulation_duration=250,

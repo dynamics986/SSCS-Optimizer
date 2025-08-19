@@ -83,4 +83,6 @@ class GlobularBaseCactusFactory(BaseCactusFactory):
         obj.rotation_euler[-1] = uniform(0, np.pi * 2)
         butil.apply_transform(obj)
 
+        # obj.category = "Cactus"
+        self.assign_category(obj)
         return obj

@@ -40,6 +40,10 @@ class BoulderPileFactory(AssetFactory):
         mesh = surface_from_func(floor_fn, 32, 32, 12, 12)
         obj = bpy.data.objects.new("floor", mesh)
         bpy.context.scene.collection.objects.link(obj)
+
+        from infinigen.core.util.blender import surface_area
+        obj["area"] = surface_area(obj)
+        
         return obj
 
     @staticmethod
@@ -102,4 +106,7 @@ class BoulderPileFactory(AssetFactory):
         multi_res(obj)
         remesh_with_attrs(obj, face_size)
         tag_object(obj, "pile")
+
+        # obj.category = "Pile"
+        self.assign_category(obj)
         return obj

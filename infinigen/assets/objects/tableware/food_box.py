@@ -34,4 +34,7 @@ class FoodBoxFactory(AssetFactory):
         obj = butil.copy(placeholder)
         wrap_six_sides(obj, self.surface, self.texture_shared)
         butil.modify_mesh(obj, "BEVEL", width=0.001)
+
+        # obj.category = "Tableware"
+        self.assign_category(obj)
         return obj

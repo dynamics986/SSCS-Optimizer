@@ -41,6 +41,49 @@ class FloorPlanSolver:
             self.contours = []
 
             self.build_graphs()
+
+            # ------------------------------------------------------------------
+            # Custom fixed contour override
+            # If the user has specified explicit contour_vertices in RoomConstants
+            # we replace the automatically generated ground-floor contour with
+            # that polygon. We DO NOT modify build_graphs(); we simply adjust the
+            # outputs it produced.
+            # ------------------------------------------------------------------
+
+            if (
+                self.fixed_contour
+                and hasattr(self.constants, "contour_vertices")
+                and self.constants.contour_vertices is not None
+                and len(self.constants.contour_vertices) >= 3
+            ):
+                try:
+                    user_poly = shapely.Polygon(self.constants.contour_vertices)
+                    # Ensure validity & canonicalization using constants helper
+                    user_poly = self.constants.canonicalize(user_poly)
+
+                    # Replace ground-floor contour (index 0)
+                    if len(self.contours) > 0:
+                        self.contours[0] = user_poly
+
+                    # Update stored width/height so downstream modules (e.g.,
+                    # staircase placement) stay consistent.
+                    minx, miny, maxx, maxy = user_poly.bounds
+                    w = self.constants.unit_cast(maxx - minx)
+                    h = self.constants.unit_cast(maxy - miny)
+
+                    if len(self.widths) > 0:
+                        self.widths[0] = w
+                    if len(self.heights) > 0:
+                        self.heights[0] = h
+
+                except Exception as e:
+                    # Fall back silently if polygon is invalid; we keep the
+                    # auto-generated contour.
+                    import logging
+
+                    logging.warning(
+                        f"Failed to apply user-defined contour_vertices; using default. Error: {e}"
+                    )
             self.segment_makers = [
                 SegmentMaker(
                     factory_seed,
@@ -63,7 +106,7 @@ class FloorPlanSolver:
             self.score_scale = 5
             self.staircase_solver_prob = 0.1
 
-    def build_graphs(self):
+    def build_graphs(self):  # control floor shapes
         for i in range(self.n_stories):
             graph_maker = GraphMaker(self.factory_seed, self.consgraph, i)
             if self.fixed_contour and i > 0:

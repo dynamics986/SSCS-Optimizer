@@ -197,7 +197,9 @@ class ChairFactory(AssetFactory):
             surface.assign_material(obj, self.surface)
             surface.assign_material(obj, self.panel_surface, selection="panel")
             surface.assign_material(obj, self.limb_surface, selection="limb")
-
+        
+        # obj.category = "Chair"
+        self.assign_category(obj)
         return obj
 
     def finalize_assets(self, assets):

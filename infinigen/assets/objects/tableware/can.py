@@ -57,6 +57,9 @@ class CanFactory(AssetFactory):
         surface.assign_material(obj, self.surface)
         wrap = self.make_wrap(coords)
         obj = join_objects([obj, wrap])
+
+        # obj.category = "Bottle"
+        self.assign_category(obj)
         return obj
 
     @staticmethod

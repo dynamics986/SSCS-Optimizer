@@ -28,7 +28,7 @@ class StringTag(Tag):
 class EnumTag(Tag, Enum, metaclass=ABCEnumMeta):
     pass
 
-
+# important for category
 class Semantics(EnumTag):
     # Mesh types
     Room = "room"
@@ -72,7 +72,7 @@ class Semantics(EnumTag):
     WallDecoration = "wall-decoration"
     HandheldItem = "handheld-item"
 
-    # Furniture functions
+    # Furniture functions, category puts more importance on
     Storage = "storage"
     Seating = "seating"
     LoungeSeating = "lounge-seating"
@@ -147,7 +147,7 @@ class Semantics(EnumTag):
 
 
 class Subpart(EnumTag):
-    SupportSurface = "support"
+    SupportSurface = "support" # Reference for floor area calculation
     Interior = "interior"
     Visible = "visible"
     Bottom = "bottom"

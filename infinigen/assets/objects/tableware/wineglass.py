@@ -50,4 +50,6 @@ class WineglassFactory(TablewareFactory):
         with butil.SelectObjects(obj):
             bpy.ops.object.shade_smooth()
 
+        # obj.category = "Bottle"
+        self.assign_category(obj)
         return obj

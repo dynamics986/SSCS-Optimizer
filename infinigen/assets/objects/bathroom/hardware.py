@@ -127,6 +127,9 @@ class HardwareFactory(AssetFactory):
         obj = join_objects(parts)
         obj.rotation_euler[-1] = np.pi / 2
         butil.apply_transform(obj)
+
+        # obj.category = "Hardware"
+        # Hardware is a attachment without belonging to a category
         return obj
 
     def finalize_assets(self, assets):

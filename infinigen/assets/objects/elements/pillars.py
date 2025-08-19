@@ -151,6 +151,9 @@ class PillarFactory(AssetFactory):
             )
         subsurf(obj, 1, True)
         subsurf(obj, 1)
+
+        # obj.category = "Pillar"
+        self.assign_category(obj)
         return obj
 
     def finalize_assets(self, assets):

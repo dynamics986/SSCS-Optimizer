@@ -55,6 +55,9 @@ class FoodBagFactory(AssetFactory):
         surface.add_geomod(
             obj, geo_extension, input_kwargs={"musgrave_dimensions": "2D"}, apply=True
         )
+
+        # obj.category = "Tableware" (not sure)
+        self.assign_category(obj)
         return obj
 
     def make_base(self):

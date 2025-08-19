@@ -434,4 +434,7 @@ class CeilingClassicLampFactory(AssetFactory):
         obj = butil.deep_clone_obj(placeholder, keep_materials=True)
         light = self.light_factory.spawn_asset(i)
         butil.parent_to(light, obj)
+
+        # obj.category = "Lamp"
+        self.assign_category(obj)
         return obj

@@ -183,6 +183,8 @@ class LampFactory(AssetFactory):
         with butil.SelectObjects(obj):
             bpy.ops.object.shade_flat()
 
+        # obj.category = "Lamp"
+        self.assign_category(obj)
         return obj
 
     def finalize_assets(self, assets):

@@ -114,6 +114,9 @@ class BathroomSinkFactory(BathtubFactory):
             )
             butil.apply_transform(tap, True)
             obj = join_objects([obj, tap])
+
+        # obj.category = "Sink"
+        self.assign_category(obj)
         return obj
 
     def extrude_back(self, obj):

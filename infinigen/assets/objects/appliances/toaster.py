@@ -1486,4 +1486,6 @@ class ToasterFactory(AssetFactory):
             ng_inputs=ng_input,
         )
 
+        # obj.category = "Heatbox"
+        self.assign_category(obj)
         return obj

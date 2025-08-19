@@ -82,4 +82,7 @@ class PrickyPearBaseCactusFactory(BaseCactusFactory):
         obj = self.build_leaves(2)
         write_attr_data(obj, "selection", np.ones(len(obj.data.vertices)))
         tag_object(obj, "prickypear_cactus")
+
+        # obj.category = "Cactus"
+        self.assign_category(obj)
         return obj

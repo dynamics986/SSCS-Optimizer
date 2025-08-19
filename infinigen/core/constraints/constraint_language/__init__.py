@@ -10,7 +10,7 @@ from .expression import (
     BoolOperatorExpression,
     Expression,
     ScalarExpression,
-    ScalarOperatorExpression,
+    ScalarOperatorExpression, 
     constant,
     debugprint,
     hinge,

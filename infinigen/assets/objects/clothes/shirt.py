@@ -94,4 +94,7 @@ class ShirtFactory(AssetFactory):
         butil.modify_mesh(obj, "BEVEL", width=self.sleeve_width * uniform(0.1, 0.15))
         subsurf(obj, 1)
         wrap_front_back(obj, self.surface)
+
+        # obj.category = "Clothes"
+        self.assign_category(obj)
         return obj

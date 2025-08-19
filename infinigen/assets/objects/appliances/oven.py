@@ -219,6 +219,8 @@ class OvenFactory(AssetFactory):
         butil.delete(hollow)
         butil.join_objects([obj, grates], check_attributes=True)
 
+        # obj.category = "Heatbox"
+        self.assign_category(obj)
         return obj
 
     def finalize_assets(self, assets):

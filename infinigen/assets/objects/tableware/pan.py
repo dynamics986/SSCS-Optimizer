@@ -59,6 +59,9 @@ class PanFactory(TablewareFactory):
         origin2lowest(obj, vertical=True)
         obj.scale = [self.scale] * 3
         butil.apply_transform(obj)
+
+        # obj.category = "Cookware"
+        self.assign_category(obj)
         return obj
 
     def make_base(self):

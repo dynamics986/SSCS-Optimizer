@@ -58,8 +58,78 @@ class AssetFactory:
             "vis_distance": vis_distance,
         }
 
+    def assign_category(self, obj):
+        # Automatically assign the category attribute to obj
+        try:
+            from infinigen_examples.constraints.semantics import FACTORY_TO_CATEGORY
+            category = FACTORY_TO_CATEGORY.get(type(self), None)
+            if category is not None:
+                # Use Blender id_properties system
+                obj["category"] = category
+            else:
+                obj["category"] = "unknown"
+        except Exception as e:
+            obj["category"] = "unknown"
+            
+        # Automatically calculate and assign poly_count attribute
+        try:
+            if (hasattr(obj, 'data') and 
+                hasattr(obj.data, 'polygons') and 
+                obj.type == "MESH"):
+                obj["poly_count"] = len(obj.data.polygons)
+            else:
+                obj["poly_count"] = 0
+        except Exception as e:
+            obj["poly_count"] = 0
+            
+        # Automatic assignment of interactive properties
+        self.assign_interactive_properties(obj)
+        
+    def assign_interactive_properties(self, obj):
+        """Automatically assign interactive properties based on factory type"""
+        try:
+            from infinigen.core.scene import InteractionType
+            
+            # set 'not interactive' as default
+            obj["is_interactive"] = False
+            obj["interaction_types"] = []
+            
+            # enroll interactive type according to name
+            factory_type = type(self).__name__.lower()
+            
+            # Determine if the object is interactive based on factory type
+            if 'door' in factory_type:
+                obj["is_interactive"] = True
+                obj["interaction_types"] = [InteractionType.DOOR_OPEN, InteractionType.DOOR_CLOSE]
+            elif 'drawer' in factory_type:
+                obj["is_interactive"] = True
+                obj["interaction_types"] = [InteractionType.DRAWER_OPEN, InteractionType.DRAWER_CLOSE]
+            elif 'window' in factory_type:
+                obj["is_interactive"] = True
+                obj["interaction_types"] = [InteractionType.WINDOW_OPEN, InteractionType.WINDOW_CLOSE]
+            elif 'switch' in factory_type:
+                obj["is_interactive"] = True
+                obj["interaction_types"] = [InteractionType.SWITCH_ON, InteractionType.SWITCH_OFF]
+            elif 'button' in factory_type:
+                obj["is_interactive"] = True
+                obj["interaction_types"] = [InteractionType.BUTTON_PRESS]
+            elif 'lever' in factory_type:
+                obj["is_interactive"] = True
+                obj["interaction_types"] = [InteractionType.LEVER_PULL]
+            elif 'knob' in factory_type:
+                obj["is_interactive"] = True
+                obj["interaction_types"] = [InteractionType.KNOB_TURN]
+                
+        except Exception as e:
+            # If error, set to default non-interactive state
+            obj["is_interactive"] = False
+            obj["interaction_types"] = []
+            
+        # More interaction types can be added as needed
+
     def create_asset(self, **params) -> bpy.types.Object:
         # Override this function to produce a high detail asset
+        # Recommended subclasses to call self.assign_category(obj) after generating obj
         raise NotImplementedError
 
     def finalize_assets(self, assets):

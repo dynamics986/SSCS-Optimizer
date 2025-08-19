@@ -405,4 +405,6 @@ class MultiDoublefridgeFactory(AssetFactory):
         #     os.remove(tmp_buleprint_path)
         #     return obj, asset_path, semantic_mapping
 
+        # obj.category = "Fridge"
+        self.assign_category(obj)
         return obj

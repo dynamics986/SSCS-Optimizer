@@ -133,6 +133,9 @@ class BedFactory(bedframe.BedFrameFactory):
         for _ in [mattress, sheet, cover] + pillows + towels:
             _.parent = frame
         butil.select_none()
+
+        # obj.category = "Bed"
+        self.assign_category(frame)
         return frame
 
     def make_mattress(self, i):

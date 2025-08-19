@@ -508,4 +508,6 @@ class BasketBaseFactory(AssetFactory):
         )
         tagging.tag_system.relabel_obj(obj)
 
+        # obj.category = "Basket"
+        self.assign_category(obj)
         return obj

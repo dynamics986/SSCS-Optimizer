@@ -14,11 +14,14 @@ from pathlib import Path
 # must import bpy before bmesh
 import bpy
 import gin
-import bmesh
-import mathutils
+try:
+    import bmesh  # type: ignore
+except ImportError:
+    bmesh = None
+import mathutils # type: ignore
 import numpy as np
 import trimesh
-from mathutils import Vector
+from mathutils import Vector # type: ignore
 from tqdm import tqdm
 
 from infinigen.core.nodes.node_info import DATATYPE_DIMS, DATATYPE_FIELDS
@@ -76,6 +79,11 @@ class ViewportMode:
         self.orig_active = bpy.context.active_object
         bpy.context.view_layer.objects.active = self.obj
         self.orig_mode = bpy.context.object.mode
+        
+        if hasattr(self.obj, "hide_viewport"):
+            self.obj.hide_viewport = False
+        else:
+            self.obj.hide_set(False)
         bpy.ops.object.mode_set(mode=self.mode)
 
     def __exit__(self, *args):
@@ -151,6 +159,13 @@ class SelectObjects:
     def __enter__(self):
         self.saved_objects = list(bpy.context.selected_objects)
         self.saved_active = bpy.context.active_object
+
+        # Make sure all objects are visible
+        for o in self.objects:
+            if hasattr(o, "hide_viewport"):
+                o.hide_viewport = False
+            else:
+                o.hide_set(False)
 
         select_none()
         select(self.objects)
@@ -509,11 +524,19 @@ def clear_scene(keep=[], targets=None, materials=True):
                 continue
             t.remove(o)
 
-    with Suppress():
-        bpy.ops.ptcache.free_bake_all()
+    # Skip the potentially problematic particle cache cleanup operation
+    # This operation tends to get stuck in complex scenarios and is not required
+    # try:
+    #     with Suppress():
+    #         bpy.ops.ptcache.free_bake_all()
+    # except Exception as e:
+    #     logger.warning(f"ptcache.free_bake_all() failed: {e}")
 
 
 def spawn_capsule(rad, height, us=32, vs=16):
+    if bmesh is None:
+        raise ImportError("bmesh module is not available")
+    
     mesh = bpy.data.meshes.new("Capsule")
     obj = bpy.data.objects.new("Capsule", mesh)
     bpy.context.collection.objects.link(obj)
@@ -970,6 +993,9 @@ def apply_matrix_world(obj, verts: np.array):
 
 
 def surface_area(obj: bpy.types.Object):
+    if bmesh is None:
+        raise ImportError("bmesh module is not available")
+    
     bm = bmesh.new()
     bm.from_mesh(obj.data)
     area = sum(f.calc_area() for f in bm.faces)

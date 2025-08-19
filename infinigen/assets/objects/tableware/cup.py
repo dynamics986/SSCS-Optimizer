@@ -115,6 +115,9 @@ class CupFactory(TablewareFactory):
             obj = join_objects([obj, wrap])
         obj.scale = [self.scale] * 3
         butil.apply_transform(obj)
+
+        # obj.category = "Bottle"
+        self.assign_category(obj)
         return obj
 
     def add_handle(self, obj, handle_location, handle_angle):

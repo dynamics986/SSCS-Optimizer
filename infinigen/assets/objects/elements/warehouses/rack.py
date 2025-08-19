@@ -105,6 +105,9 @@ class RackFactory(AssetFactory):
         # obj = join_objects([obj] + pallets)
         obj.rotation_euler[-1] = np.pi / 2
         butil.apply_transform(obj)
+
+        # obj.category = "Rack" (not sure)
+        self.assign_category(obj)
         return obj
 
     def make_stands(self):

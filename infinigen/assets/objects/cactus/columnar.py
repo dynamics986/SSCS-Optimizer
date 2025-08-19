@@ -92,6 +92,9 @@ class ColumnarBaseCactusFactory(BaseCactusFactory):
         surface.add_geomod(
             obj, geo_extension, apply=True, input_kwargs={"musgrave_dimensions": "2D"}
         )
+
+        # obj.category = "Cactus"
+        self.assign_category(obj)
         return obj
 
     @staticmethod

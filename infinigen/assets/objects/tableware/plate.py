@@ -41,4 +41,7 @@ class PlateFactory(TablewareFactory):
         )
         self.solidify_with_inside(obj, self.thickness)
         subsurf(obj, 1)
+
+        # obj.category = "Cookware"
+        self.assign_category(obj)
         return obj

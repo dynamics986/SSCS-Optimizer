@@ -76,4 +76,7 @@ class PantsFactory(AssetFactory):
             bpy.ops.mesh.delete(type="EDGE")
         wrap_top_bottom(obj, self.surface)
         subsurf(obj, 1)
+
+        # obj.category = "Clothes"
+        self.assign_category(obj)
         return obj

@@ -60,6 +60,15 @@ from infinigen_examples.util.generate_indoors_util import (
 from . import (
     generate_nature,  # noqa: F401 # needed for nature gin configs to be loaded
 )
+from infinigen.core.constraints.example_solver.sscs_calculator import SSCSCalculator
+
+# Bayesian optimization availability check
+try:
+    from skopt import Optimizer
+    BAYESIAN_OPT_AVAILABLE = True
+except ImportError:
+    BAYESIAN_OPT_AVAILABLE = False
+    print("Warning: scikit-optimize not available. Using fallback optimization.")
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +142,8 @@ all_vars = [cu.variable_room, cu.variable_obj]
 
 
 @gin.configurable
-def compose_indoors(output_folder: Path, scene_seed: int, **overrides):
+def compose_indoors(output_folder: Path, scene_seed: int, target_sscs=None, **overrides):
+    output_folder.mkdir(parents=True, exist_ok=True)
     p = pipeline.RandomStageExecutor(scene_seed, output_folder, overrides)
 
     logger.debug(overrides)
@@ -154,7 +164,7 @@ def compose_indoors(output_folder: Path, scene_seed: int, **overrides):
 
     p.run_stage("sky_lighting", lighting.sky_lighting.add_lighting, use_chance=False)
 
-    consgraph = home_constraints.home_furniture_constraints()
+    consgraph = home_constraints.home_furniture_constraints(target_sscs=target_sscs)
     consgraph_rooms = home_constraints.home_room_constraints()
     constants = consgraph_rooms.constants
 
@@ -260,7 +270,7 @@ def compose_indoors(output_folder: Path, scene_seed: int, **overrides):
         return poses, scene_preprocessed
 
     poses, scene_preprocessed = p.run_stage(
-        "pose_cameras", pose_cameras, use_chance=False
+        "pose_cameras", pose_cameras, use_chance=False, default=(None, None)
     )
 
     def animate_cameras():
@@ -511,6 +521,278 @@ def compose_indoors(output_folder: Path, scene_seed: int, **overrides):
     }
 
 
+param_space = home_constraints.get_param_space()
+
+
+class BayesianOptimizer:
+    """Bayesian optimization for SSCS target matching"""
+    
+    def __init__(self, param_space, n_initial_points=1, n_calls=5):
+        self.param_space = param_space
+        self.n_initial_points = n_initial_points
+        self.n_calls = n_calls
+        self.optimizer = None
+        self.history = []
+        
+        # Try to use global optimizer from home.py first
+        self.global_optimizer = home_constraints.get_global_optimizer()
+        
+        if BAYESIAN_OPT_AVAILABLE and self.global_optimizer is None:
+            self.optimizer = Optimizer(
+                dimensions=param_space,
+                base_estimator="GP",
+                acq_func="EI",
+                acq_optimizer="auto",
+                random_state=42
+            )
+    
+    def _sample_random_params(self):
+        """Sample random parameters with SSCS-aligned parameters"""
+        return {
+            # SSCS-aligned parameters (Object Diversity - OD)
+            'category_diversity_target': np.random.uniform(0.1, 0.8),
+            'instance_density_target': np.random.uniform(0.2, 1.0),
+            'interactive_category_ratio': np.random.uniform(0.1, 0.9),
+            
+            # SSCS-aligned parameters (Layout Complexity - LC)
+            'spatial_distribution_spread': np.random.uniform(0.1, 0.9),
+            'room_utilization_balance': np.random.uniform(0.2, 0.8),
+            
+            # SSCS-aligned parameters (Functional Properties - FP)
+            'interactive_object_ratio': np.random.uniform(0.1, 0.8),
+            'interaction_type_diversity': np.random.uniform(0.1, 0.9),
+            
+            # SSCS-aligned parameters (Visual Diversity - VD)
+            'material_diversity_target': np.random.uniform(0.2, 0.9),
+            'geometry_complexity_target': np.random.uniform(0.1, 0.8),
+            
+            # Original parameters
+            'furniture_fullness_pct': np.random.uniform(0.2, 0.9),
+            'obj_interior_obj_pct': np.random.uniform(0.2, 1.0),
+            'obj_on_storage_pct': np.random.uniform(0.2, 1.0),
+            'obj_on_nonstorage_pct': np.random.uniform(0.1, 1.0),
+            'painting_area_per_room_area': np.random.uniform(0.1, 2.5),
+            'has_tv': bool(np.random.randint(0, 2)),
+            'has_aquarium_tank': bool(np.random.randint(0, 2)),
+            'has_birthday_balloons': bool(np.random.randint(0, 2)),
+            'has_cocktail_tables': bool(np.random.randint(0, 2)),
+            'has_kitchen_barstools': bool(np.random.randint(0, 2)),
+        }
+    
+    def _convert_to_dict(self, params):
+        """Convert continuous parameters to dictionary format with all SSCS-aligned parameters"""
+        return {
+            # SSCS-aligned parameters (Object Diversity - OD)
+            'category_diversity_target': params[0],
+            'instance_density_target': params[1],
+            'interactive_category_ratio': params[2],
+            
+            # SSCS-aligned parameters (Layout Complexity - LC)
+            'spatial_distribution_spread': params[3],
+            'room_utilization_balance': params[4],
+            
+            # SSCS-aligned parameters (Functional Properties - FP)
+            'interactive_object_ratio': params[5],
+            'interaction_type_diversity': params[6],
+            
+            # SSCS-aligned parameters (Visual Diversity - VD)
+            'material_diversity_target': params[7],
+            'geometry_complexity_target': params[8],
+            
+            # Original parameters
+            'furniture_fullness_pct': params[9],
+            'obj_interior_obj_pct': params[10],
+            'obj_on_storage_pct': params[11],
+            'obj_on_nonstorage_pct': params[12],
+            'painting_area_per_room_area': params[13],
+            'has_tv': bool(params[14]),
+            'has_aquarium_tank': bool(params[15]),
+            'has_birthday_balloons': bool(params[16]),
+            'has_cocktail_tables': bool(params[17]),
+            'has_kitchen_barstools': bool(params[18]),
+        }
+    
+    def _evaluate_params(self, params, scene_seed, output_folder, sscs_calc, target_sscs=None):
+        """Evaluate parameters by generating scene and computing SSCS"""
+        try:
+            scene_result = compose_indoors(output_folder, scene_seed, target_sscs=target_sscs, **params)
+            # Create Scene object for SSCS calculation from current Blender scene
+            from infinigen.core.scene import Scene
+            scene = Scene()
+            sscs = sscs_calc.compute(scene)
+            
+            # Apply SSCS correction if needed
+            if target_sscs is not None:
+                if sscs > target_sscs + 0.2:  # SSCS too high
+                    print(f"SSCS too high ({sscs:.3f} > {target_sscs:.3f}), applying complexity reduction")
+                    # Apply complexity reduction and retry
+                    from infinigen_examples.constraints import home as home_constraints
+                    reduced_params = home_constraints._reduce_scene_complexity(params.copy(), target_sscs)
+                    scene_result = compose_indoors(output_folder, scene_seed, target_sscs=target_sscs, **reduced_params)
+                    scene = Scene()
+                    sscs = sscs_calc.compute(scene)
+                    print(f"After reduction: SSCS = {sscs:.3f}")
+                elif sscs < target_sscs - 0.2:  # SSCS too low
+                    print(f"SSCS too low ({sscs:.3f} < {target_sscs:.3f}), applying complexity increase")
+                    # Apply complexity increase and retry
+                    from infinigen_examples.constraints import home as home_constraints
+                    increased_params = home_constraints._increase_scene_complexity(params.copy(), target_sscs)
+                    scene_result = compose_indoors(output_folder, scene_seed, target_sscs=target_sscs, **increased_params)
+                    scene = Scene()
+                    sscs = sscs_calc.compute(scene)
+                    print(f"After increase: SSCS = {sscs:.3f}")
+            
+            return sscs, scene_result
+        except Exception as e:
+            print(f"Error evaluating parameters: {e}")
+            # Use target_sscs as fallback, or 0.5 if not provided
+            fallback_sscs = target_sscs if target_sscs is not None else 0.5
+            return fallback_sscs, None  # Return None as fallback
+    
+    def _update_optimizer(self, params, sscs, target_sscs, scene_result=None):
+        """Update optimizer with new result"""
+        self.history.append({
+            'params': params,
+            'sscs': sscs,
+            'target_sscs': target_sscs,
+            'error': abs(sscs - target_sscs),
+            'scene_result': scene_result
+        })
+        
+        # Also update the global optimizer in home.py
+        home_constraints.update_optimizer_with_result(params, sscs, target_sscs)
+        
+        # Update local optimizer if available
+        if self.optimizer is not None:
+            # Safely convert boolean parameters to int, handling None values
+            def safe_bool_to_int(param_name, default=False):
+                value = params.get(param_name, default)
+                if value is None:
+                    return int(default)
+                return int(bool(value))
+            
+            continuous_params = [
+                # SSCS-aligned parameters (Object Diversity - OD)
+                params.get('category_diversity_target', 0.5),
+                params.get('instance_density_target', 0.5),
+                params.get('interactive_category_ratio', 0.5),
+                
+                # SSCS-aligned parameters (Layout Complexity - LC)
+                params.get('spatial_distribution_spread', 0.5),
+                params.get('room_utilization_balance', 0.5),
+                
+                # SSCS-aligned parameters (Functional Properties - FP)
+                params.get('interactive_object_ratio', 0.5),
+                params.get('interaction_type_diversity', 0.5),
+                
+                # SSCS-aligned parameters (Visual Diversity - VD)
+                params.get('material_diversity_target', 0.5),
+                params.get('geometry_complexity_target', 0.5),
+                
+                # Original parameters
+                params.get('furniture_fullness_pct', 0.5),
+                params.get('obj_interior_obj_pct', 0.5),
+                params.get('obj_on_storage_pct', 0.5),
+                params.get('obj_on_nonstorage_pct', 0.5),
+                params.get('painting_area_per_room_area', 1.0),
+                safe_bool_to_int('has_tv', False),
+                safe_bool_to_int('has_aquarium_tank', False),
+                safe_bool_to_int('has_birthday_balloons', False),
+                safe_bool_to_int('has_cocktail_tables', False),
+                safe_bool_to_int('has_kitchen_barstools', False),
+            ]
+            error = abs(sscs - target_sscs)
+            self.optimizer.tell(continuous_params, error)
+    
+    def optimize(self, target_sscs, scene_seed, output_folder):
+        """Run Bayesian optimization to find parameters matching target SSCS"""
+        if self.global_optimizer is None and self.optimizer is None:
+            print("Warning: Bayesian optimization not available, using fallback")
+            return self._fallback_optimization(target_sscs, scene_seed, output_folder)
+        
+        sscs_calc = SSCSCalculator()
+        
+        # Use global optimizer if available, otherwise use local optimizer
+        optimizer_to_use = self.global_optimizer if self.global_optimizer is not None else self.optimizer
+        
+        # Initial random sampling
+        for i in range(self.n_initial_points):
+            params = self._sample_random_params()
+            sscs, scene_result = self._evaluate_params(params, scene_seed, output_folder, sscs_calc, target_sscs)
+            self._update_optimizer(params, sscs, target_sscs, scene_result)
+            print(f"Initial point {i+1}: SSCS={sscs:.3f}, target={target_sscs:.3f}, error={abs(sscs-target_sscs):.3f}")
+            if abs(sscs - target_sscs) < 0.1:
+                print(f"Target reached! SSCS={sscs:.3f}")
+                return scene_result
+            
+        # Bayesian optimization
+        for i in range(self.n_calls - self.n_initial_points):
+            if optimizer_to_use is not None:
+                next_params = optimizer_to_use.ask()
+                param_dict = self._convert_to_dict(next_params)
+            else:
+                param_dict = self._sample_random_params()
+            
+            sscs, scene_result = self._evaluate_params(param_dict, scene_seed, output_folder, sscs_calc, target_sscs)
+            self._update_optimizer(param_dict, sscs, target_sscs, scene_result)
+            print(f"BO iteration {i+1}: SSCS={sscs:.3f}, target={target_sscs:.3f}, error={abs(sscs-target_sscs):.3f}")
+            
+            if abs(sscs - target_sscs) < 0.1:
+                print(f"Target reached! SSCS={sscs:.3f}")
+                return scene_result
+        
+        # Return best result
+        best_record = min(self.history, key=lambda x: abs(x['sscs'] - target_sscs))
+        print(f"Best result: SSCS={best_record['sscs']:.3f}, error={abs(best_record['sscs']-target_sscs):.3f}")
+        return best_record['scene_result']
+    
+    def _fallback_optimization(self, target_sscs, scene_seed, output_folder):
+        """Fallback optimization using improved linear interpolation"""
+        sscs_calc = SSCSCalculator()
+        best_scene_result = None
+        best_error = float('inf')
+        
+        for i in range(5):
+            # Use the updated parameter sampling function from home.py
+            params = home_constraints.sample_home_constraint_params(target_sscs=target_sscs)
+            sscs, scene_result = self._evaluate_params(params, scene_seed, output_folder, sscs_calc, target_sscs)
+            error = abs(sscs - target_sscs)
+            
+            print(f"Fallback iteration {i+1}: SSCS={sscs:.3f}, target={target_sscs:.3f}, error={error:.3f}")
+            
+            if error < best_error:
+                best_error = error
+                best_scene_result = scene_result
+            
+            if error < 0.1:
+                print(f"Target reached! SSCS={sscs:.3f}")
+                return scene_result
+        
+        return best_scene_result
+
+# Global optimizer instance
+bayesian_optimizer = BayesianOptimizer(param_space)
+
+def generate_with_sscs_target(target_sscs, scene_seed, output_folder):
+    """Generate scene with target SSCS using Bayesian optimization"""
+    try:
+        # Use Bayesian optimization to find the best parameters
+        best_scene_result = bayesian_optimizer.optimize(target_sscs, scene_seed, output_folder)
+        
+        # Return the same format as compose_indoors
+        if best_scene_result is not None:
+            return best_scene_result
+        else:
+            # Fallback to default parameters if optimization failed
+            params = home_constraints.sample_home_constraint_params(target_sscs=target_sscs)
+            return compose_indoors(output_folder, scene_seed, target_sscs=target_sscs, **params)
+    except Exception as e:
+        print(f"Error in SSCS optimization: {e}")
+        # Final fallback with default parameters
+        params = home_constraints.sample_home_constraint_params(target_sscs=target_sscs)
+        return compose_indoors(output_folder, scene_seed, target_sscs=target_sscs, **params)
+
+
 def main(args):
     scene_seed = init.apply_scene_seed(args.seed)
     init.apply_gin_configs(
@@ -522,8 +804,19 @@ def main(args):
         ],
     )
 
+    # If SSCS target is specified, use the SSCS-optimized compose function
+    if args.sscs is not None:
+        # Create a wrapper function, using SSCS optimization
+        def compose_indoors_with_sscs(output_folder, scene_seed, **kwargs):
+            return generate_with_sscs_target(args.sscs, scene_seed, output_folder)
+        
+        compose_func = compose_indoors_with_sscs
+    else:
+        # Use the default compose function
+        compose_func = compose_indoors
+
     execute_tasks.main(
-        compose_scene_func=compose_indoors,
+        compose_scene_func=compose_func,
         populate_scene_func=None,
         input_folder=args.input_folder,
         output_folder=args.output_folder,
@@ -531,7 +824,6 @@ def main(args):
         task_uniqname=args.task_uniqname,
         scene_seed=scene_seed,
     )
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -573,7 +865,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--task_uniqname", type=str, default=None)
     parser.add_argument("-d", "--debug", type=str, nargs="*", default=None)
-
+    parser.add_argument("--sscs", type=float, default=None, help="Target SSCS score (0~1)")
+    
     args = init.parse_args_blender(parser)
 
     logging.getLogger("infinigen").setLevel(logging.INFO)

@@ -25,7 +25,8 @@ class RoomConstants:
         n_stories=("cat", 0.0, 0.5, 0.4, 0.1),
         room_type=None,
         aspect_ratio_range=(0.7, 1.0),
-        fixed_contour=("bool", 0.5),
+        fixed_contour=("bool", 1.0), # Control floor shapes
+        contour_vertices=[(-6, -6), (6, -6), (6, 6), (-6, 6)] # My own configuration
     ):
         self.n_stories = rg(n_stories)
         self.unit, self.segment_margin, self.wall_thickness, self.wall_height = (
@@ -46,6 +47,10 @@ class RoomConstants:
             self.room_types = room_type
         self.aspect_ratio_range = aspect_ratio_range
         self.fixed_contour = rg(fixed_contour)
+        # Store user-supplied contour so that other parts of the solver can use it
+        # (e.g., FloorPlanSolver overrides).  Keep as provided; validation will be
+        # done downstream where the polygon is built.
+        self.contour_vertices = contour_vertices
 
     @gin.configurable(module="RoomConstants")
     def global_params(

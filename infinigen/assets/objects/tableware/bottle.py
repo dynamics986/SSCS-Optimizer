@@ -184,6 +184,8 @@ class BottleFactory(AssetFactory):
         cap = self.make_cap()
         obj = join_objects([bottle, wrap, cap])
 
+        # obj.category = "Bottle"
+        self.assign_category(obj)
         return obj
 
     def finalize_assets(self, assets):
