@@ -78,6 +78,9 @@ def static_category_factory(
                 tag_support_surfaces(imported_obj)
 
             if imported_obj:
+                # Print message when static asset has been successfully placed in the scene
+                category_name = os.path.basename(self.path_to_assets)
+                print(f"Static asset '{category_name}' (file: {self.asset_file}) has been placed in the scene!")
                 return imported_obj
             else:
                 raise ValueError(f"Failed to import asset: {self.asset_file}")
@@ -86,6 +89,7 @@ def static_category_factory(
 
 
 # Create factory instances for different categories
+'''
 StaticSofaFactory = static_category_factory(
     "infinigen/assets/static_assets/source/Sofa"
 )
@@ -94,4 +98,8 @@ StaticTableFactory = static_category_factory(
 )
 StaticShelfFactory = static_category_factory(
     "infinigen/assets/static_assets/source/Shelf", tag_support=True, z_dim=2
+)
+'''
+StaticLabubuFactory = static_category_factory(
+    "infinigen/assets/static_assets/source/Labubu", z_dim=0.4
 )

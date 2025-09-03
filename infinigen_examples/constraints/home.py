@@ -7,6 +7,7 @@
 import numpy as np
 import logging
 from collections import OrderedDict
+import shapely
 
 import gin
 from numpy.random import uniform
@@ -61,6 +62,8 @@ def get_param_names():
         # SSCS-aligned parameters (Layout Complexity - LC)
         'spatial_distribution_spread',
         'room_utilization_balance',
+        'surface_area_target',  # in m^2
+        'floor_area_target',    # in m^2
         
         # SSCS-aligned parameters (Functional Properties - FP)
         'interactive_object_ratio',
@@ -86,7 +89,7 @@ def get_param_names():
 def validate_param_count():
     """Validate that the parameter count is correct (should be 19)"""
     param_count = get_param_count()
-    expected_count = 19  # 9 SSCS-aligned + 10 original
+    expected_count = 21  # 11 SSCS-aligned + 10 original
     if param_count != expected_count:
         print(f"Warning: Expected {expected_count} parameters, got {param_count}")
     return param_count == expected_count
@@ -106,6 +109,8 @@ def get_param_space():
         # SSCS-aligned parameters (Layout Complexity - LC)
         Real(0.1, 0.9, name='spatial_distribution_spread'),
         Real(0.2, 0.8, name='room_utilization_balance'),
+        Real(200, 800, name='floor_area_target'),    # in m^2
+        Real(2000, 8000, name='surface_area_target'),  # in m^2
         
         # SSCS-aligned parameters (Functional Properties - FP)
         Real(0.1, 0.8, name='interactive_object_ratio'),
@@ -125,7 +130,7 @@ def get_param_space():
         Integer(0, 1, name='has_aquarium_tank_prob'),
         Integer(0, 1, name='has_birthday_balloons_prob'),
         Integer(0, 1, name='has_cocktail_tables_prob'),
-        Integer(0, 1, name='has_kitchen_barstools_prob'),
+        Integer(0, 1, name='has_kitchen_barstools_prob'),       
     ]
 
 def get_global_optimizer():
@@ -177,6 +182,8 @@ def _random_sample_params():
         interactive_category_ratio=np.random.uniform(0.1, 0.9),
         spatial_distribution_spread=np.random.uniform(0.1, 0.9),
         room_utilization_balance=np.random.uniform(0.2, 0.8),
+        floor_area_target=np.random.uniform(200, 800),
+        surface_area_target=np.random.uniform(2000, 8000),
         interactive_object_ratio=np.random.uniform(0.1, 0.8),
         interaction_type_diversity=np.random.uniform(0.1, 0.9),
         material_diversity_target=np.random.uniform(0.2, 0.9),
@@ -193,6 +200,7 @@ def _random_sample_params():
         has_birthday_balloons=bool(np.random.randint(0, 2)),
         has_cocktail_tables=bool(np.random.randint(0, 2)),
         has_kitchen_barstools=bool(np.random.randint(0, 2)),
+        
     )
 
 def linear_interpolation(target_sscs):
@@ -204,22 +212,33 @@ def linear_interpolation(target_sscs):
     alpha = (target_sscs - 0.2) / (0.8 - 0.2) if target_sscs is not None else np.random.uniform()
     alpha = np.clip(alpha, 0, 1)
     
-    # Apply nonlinear transformation to improve parameter distribution
-    alpha_nonlinear = alpha ** 1.5  # Increase parameter sensitivity for high SSCS
-    
     # Add random perturbation to avoid local optima
-    noise = np.random.normal(0, 0.1)
-    alpha_final = np.clip(alpha_nonlinear + noise, 0, 1)
+    noise = np.random.normal(0, 0.05) # Reduced noise for more stability
+    alpha_final = np.clip(alpha + noise, 0, 1)
+
+    # Create different alphas for different SSCS components to better tune the scene
+    # S_LC is too large -> needs smaller alpha
+    alpha_lc = np.clip(alpha_final ** 1.5, 0, 1)  # Power > 1 to pull towards lower values
+    # S_FP is too small -> needs larger alpha
+    alpha_fp = np.clip(alpha_final ** 0.75, 0, 1) # Power < 1 to pull towards higher values
     
     return dict(
-        # SSCS-aligned parameters with targeted interpolation
+        # OD parameters
         category_diversity_target=interp(0.1, 0.8, alpha_final),
         instance_density_target=interp(0.2, 1.0, alpha_final),
-        interactive_category_ratio=interp(0.1, 0.9, alpha_final),
-        spatial_distribution_spread=interp(0.1, 0.9, alpha_final),
-        room_utilization_balance=interp(0.2, 0.8, alpha_final),
-        interactive_object_ratio=interp(0.1, 0.8, alpha_final),
-        interaction_type_diversity=interp(0.1, 0.9, alpha_final),
+        
+        # LC parameters (reduce these)
+        spatial_distribution_spread=interp(0.1, 0.9, alpha_lc),
+        room_utilization_balance=interp(0.2, 0.8, alpha_lc),
+        floor_area_target=interp(200, 800, alpha_lc),
+        surface_area_target=interp(2000, 8000, alpha_lc),
+
+        # FP parameters (increase these)
+        interactive_category_ratio=interp(0.1, 0.9, alpha_fp),
+        interactive_object_ratio=interp(0.1, 0.8, alpha_fp),
+        interaction_type_diversity=interp(0.1, 0.9, alpha_fp),
+
+        # VD parameters
         material_diversity_target=interp(0.2, 0.9, alpha_final),
         geometry_complexity_target=interp(0.1, 0.8, alpha_final),
         
@@ -279,18 +298,21 @@ def _bayesian_optimization_sample(target_sscs):
         # SSCS-aligned parameters (Visual Diversity - VD)
         'material_diversity_target': safe_param_access(next_params, 7, lambda: np.random.uniform(0.2, 0.9)),
         'geometry_complexity_target': safe_param_access(next_params, 8, lambda: np.random.uniform(0.1, 0.8)),
+        'floor_area_target': safe_param_access(next_params, 9, lambda: np.random.uniform(200, 800)),    # in m^2
+        'surface_area_target': safe_param_access(next_params, 10, lambda: np.random.uniform(2000, 8000)),  # in m^2
+    
         
         # Original parameters
-        'furniture_fullness_pct': safe_param_access(next_params, 9, lambda: np.random.uniform(0.2, 0.9)),
-        'obj_interior_obj_pct': safe_param_access(next_params, 10, lambda: np.random.uniform(0.2, 1.0)),
-        'obj_on_storage_pct': safe_param_access(next_params, 11, lambda: np.random.uniform(0.2, 1.0)),
-        'obj_on_nonstorage_pct': safe_param_access(next_params, 12, lambda: np.random.uniform(0.1, 1.0)),
-        'painting_area_per_room_area': safe_param_access(next_params, 13, lambda: np.random.uniform(0.1, 2.5)),
-        'has_tv': bool(int(safe_param_access(next_params, 14, lambda: np.random.randint(0, 2)))),
-        'has_aquarium_tank': bool(int(safe_param_access(next_params, 15, lambda: np.random.randint(0, 2)))),
-        'has_birthday_balloons': bool(int(safe_param_access(next_params, 16, lambda: np.random.randint(0, 2)))),
-        'has_cocktail_tables': bool(int(safe_param_access(next_params, 17, lambda: np.random.randint(0, 2)))),
-        'has_kitchen_barstools': bool(int(safe_param_access(next_params, 18, lambda: np.random.randint(0, 2)))),
+        'furniture_fullness_pct': safe_param_access(next_params, 11, lambda: np.random.uniform(0.2, 0.9)),
+        'obj_interior_obj_pct': safe_param_access(next_params, 12, lambda: np.random.uniform(0.2, 1.0)),
+        'obj_on_storage_pct': safe_param_access(next_params, 13, lambda: np.random.uniform(0.2, 1.0)),
+        'obj_on_nonstorage_pct': safe_param_access(next_params, 14, lambda: np.random.uniform(0.1, 1.0)),
+        'painting_area_per_room_area': safe_param_access(next_params, 15, lambda: np.random.uniform(0.1, 2.5)),
+        'has_tv': bool(int(safe_param_access(next_params, 16, lambda: np.random.randint(0, 2)))),
+        'has_aquarium_tank': bool(int(safe_param_access(next_params, 17, lambda: np.random.randint(0, 2)))),
+        'has_birthday_balloons': bool(int(safe_param_access(next_params, 18, lambda: np.random.randint(0, 2)))),
+        'has_cocktail_tables': bool(int(safe_param_access(next_params, 19, lambda: np.random.randint(0, 2)))),
+        'has_kitchen_barstools': bool(int(safe_param_access(next_params, 20, lambda: np.random.randint(0, 2)))),
     }
     
     return param_dict
@@ -319,8 +341,9 @@ def _calculate_param_similarity(params1, params2):
     numeric_params = [
         # SSCS-aligned parameters
         'category_diversity_target', 'instance_density_target', 'interactive_category_ratio',
-        'spatial_distribution_spread', 'room_utilization_balance', 'interactive_object_ratio',
-        'interaction_type_diversity', 'material_diversity_target', 'geometry_complexity_target',
+        'spatial_distribution_spread', 'room_utilization_balance', 'floor_area_target',
+        'surface_area_target', 'interactive_object_ratio', 'interaction_type_diversity', 
+        'material_diversity_target', 'geometry_complexity_target',
         
         # Original parameters
         'furniture_fullness_pct', 'obj_interior_obj_pct', 
@@ -360,11 +383,13 @@ def update_optimizer_with_result(params, sscs, target_sscs):
                 # SSCS-aligned parameters (Layout Complexity - LC)
                 params.get('spatial_distribution_spread', 0.5),
                 params.get('room_utilization_balance', 0.5),
+                params.get('floor_area_target', 500),    # in m^2
+                params.get('surface_area_target', 5000),  # in m^2
                 
                 # SSCS-aligned parameters (Functional Properties - FP)
                 params.get('interactive_object_ratio', 0.5),
                 params.get('interaction_type_diversity', 0.5),
-                
+
                 # SSCS-aligned parameters (Visual Diversity - VD)
                 params.get('material_diversity_target', 0.5),
                 params.get('geometry_complexity_target', 0.5),
@@ -379,7 +404,7 @@ def update_optimizer_with_result(params, sscs, target_sscs):
                 safe_bool_to_int('has_aquarium_tank'),
                 safe_bool_to_int('has_birthday_balloons'),
                 safe_bool_to_int('has_cocktail_tables'),
-                safe_bool_to_int('has_kitchen_barstools'),
+                safe_bool_to_int('has_kitchen_barstools') 
             ]
             
             # Update optimizer with new result
@@ -399,7 +424,15 @@ def home_room_constraints(fast=False):
 
     # region ROOM SCENE GRAPH CONSTRAINTS/GRAMMAR
 
-    constants = RoomConstants(fixed_contour=False) # control floor shapes
+    # constants = RoomConstants(fixed_contour=False)
+    contour = [
+        (-11, -11),
+        (11, -11),
+        (11, 11),
+        (-11, 11),
+    ]
+    constants = RoomConstants(fixed_contour=True, contour_vertices=contour) # control floor shapes
+    
     # If fixed_contour is true, all floors will use the same contour shape.
     rooms = cl.scene()[Semantics.RoomContour]
     rg = rooms[Semantics.GroundFloor]
@@ -685,7 +718,10 @@ def home_room_constraints(fast=False):
     def pholder(r):
         return r.same_level()[Semantics.Staircase]
 
+    contour_poly = shapely.Polygon(contour)
+    contour_area = contour_poly.area
     room_term = (
+        rooms.sum(lambda r: (r.area() - contour_area).abs()).minimize(weight=1e7) +
         rooms[-Semantics.Utility][-Semantics.Bathroom][-Semantics.Closet]
         .sum(lambda r: (r.access_angle() - np.pi / 2).clip(0))
         .minimize(weight=5.0)
@@ -1465,7 +1501,7 @@ def home_furniture_constraints(target_sscs=None):
     # region LIVINGROOMS
 
     livingrooms = rooms[Semantics.LivingRoom].excludes(cu.room_types)
-    sofas = furniture[static_assets.StaticSofaFactory]
+    sofas = furniture[seating.SofaFactory]  #static_assets.StaticSofaFactory
     tvstands = wallfurn[shelves.TVStandFactory]
     coffeetables = furniture[tables.CoffeeTableFactory]
 
@@ -1640,7 +1676,7 @@ def home_furniture_constraints(target_sscs=None):
                     .related_to(t, cu.ontop)
                     .count()
                     .in_range(0, 1)
-                    * (obj[Semantics.OfficeShelfItem].related_to(t, cu.on).count() >= 0)
+                    * (obj[Semantics.OfficeShelfItem].related_to(t, cu.on).count() >= 0) 
                 )
             )
         )
@@ -1650,7 +1686,7 @@ def home_furniture_constraints(target_sscs=None):
 
     # region DININGROOMS
 
-    diningtables = furniture[Semantics.Table][static_assets.StaticTableFactory]
+    diningtables = furniture[Semantics.Table][tables.TableDiningFactory] # static_assets.StaticTableFactory
     diningchairs = furniture[Semantics.Chair][seating.ChairFactory]
     constraints["dining_chairs"] = rooms.all(
         lambda r: (
@@ -1790,6 +1826,21 @@ def home_furniture_constraints(target_sscs=None):
     ) + cl.accessibility_cost(mirror, furniture, cu.down_dir).maximize(weight=3)
     # endregion
 
+    # region LABUBU
+    labubu_surfaces = furniture[
+        {Semantics.Table, Semantics.Storage}
+    ]
+    labubu = obj[static_assets.StaticLabubuFactory].related_to(
+        labubu_surfaces, cu.ontop
+    )
+    # More flexible constraint: allow Labubu on any available table/storage surface
+    constraints["labubu_placement"] = rooms.all(
+       lambda r: labubu.related_to(labubu_surfaces.related_to(r))
+       .count()
+       .in_range(0, 2)  # Allow 0-2 Labubu per room
+    )
+    # endregion
+
     # region MISC OBJECTS
 
     if params["has_aquarium_tank"]:
@@ -1870,35 +1921,49 @@ def home_furniture_constraints(target_sscs=None):
     )
 
 def _estimate_current_sscs(params):
-    """Estimate SSCS based on current parameters"""
-    # Simple estimation based on parameter values
+    """Estimate SSCS based on current parameters using the new SSCS calculator definition."""
     # This is a rough approximation of how parameters affect SSCS
-    
+
     # Object Diversity (OD) estimation
+    # Proxy for N_cat / C_max and N_inst / I_max
     category_diversity = params.get('category_diversity_target', 0.5)
     instance_density = params.get('instance_density_target', 0.5)
-    interactive_ratio = params.get('interactive_category_ratio', 0.5)
     
     # Layout Complexity (LC) estimation
+    # Proxy for E_spatial, Surface_area, and Floor_area
     spatial_spread = params.get('spatial_distribution_spread', 0.5)
-    room_balance = params.get('room_utilization_balance', 0.5)
+    surface_area = params.get('surface_area_target', 5000)
+    floor_area = params.get('floor_area_target', 500)
     
     # Functional Properties (FP) estimation
-    interactive_obj_ratio = params.get('interactive_object_ratio', 0.5)
+    # Proxy for R_inter and N_itype / T_max
+    interactive_cat_ratio = params.get('interactive_category_ratio', 0.5)
     interaction_diversity = params.get('interaction_type_diversity', 0.5)
     
     # Visual Diversity (VD) estimation
+    # Proxy for N_mat / M_max and P_avg / P_max
     material_diversity = params.get('material_diversity_target', 0.5)
     geometry_complexity = params.get('geometry_complexity_target', 0.5)
     
-    # Calculate estimated SSCS components
-    OD = 0.4 * category_diversity + 0.3 * instance_density + 0.3 * interactive_ratio
-    LC = (spatial_spread + room_balance) / 2
-    FP = (interactive_obj_ratio + interaction_diversity) / 2
-    VD = (material_diversity + geometry_complexity) / 2
+    # Calculate estimated SSCS components based on new definitions from sscs_calculator.py
+    S_OD = 0.45 * category_diversity + 0.55 * instance_density
     
+    S_max = 8000
+    F_max = 800
+    S_LC = 0.4 * spatial_spread + 0.3 * (surface_area / S_max) + 0.3 * (floor_area / F_max)
+    
+    S_FP = 0.8 * interactive_cat_ratio + 0.2 * interaction_diversity
+    
+    S_VD = 0.5 * material_diversity + 0.5 * geometry_complexity
+    
+    # Clip components to [0, 1] as in the calculator
+    S_OD = min(max(S_OD, 0), 1)
+    S_LC = min(max(S_LC, 0), 1)
+    S_FP = min(max(S_FP, 0), 1)
+    S_VD = min(max(S_VD, 0), 1)
+
     # Weighted SSCS calculation
-    estimated_sscs = 0.4 * OD + 0.25 * LC + 0.1 * FP + 0.25 * VD
+    estimated_sscs = 0.3 * S_OD + 0.3 * S_LC + 0.1 * S_FP + 0.3 * S_VD
     
     return min(max(estimated_sscs, 0), 1)
 

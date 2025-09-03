@@ -26,7 +26,7 @@ class RoomConstants:
         room_type=None,
         aspect_ratio_range=(0.7, 1.0),
         fixed_contour=("bool", 1.0), # Control floor shapes
-        contour_vertices=[(-6, -6), (6, -6), (6, 6), (-6, 6)] # My own configuration
+        contour_vertices=[(-11, -11), (11, -11), (11, 11), (-11, 11)] # 22m×22m to ensure ~20m usable space
     ):
         self.n_stories = rg(n_stories)
         self.unit, self.segment_margin, self.wall_thickness, self.wall_height = (

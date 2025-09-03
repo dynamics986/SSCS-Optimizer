@@ -1160,4 +1160,8 @@ class BaseDoorFactory(AssetFactory):
         factory = DoorCasingFactory(self.factory_seed, self.coarse, self.constants)
         factory.surface = self.surface
         factory.metal_color = self.metal_color_hsv
+        if self.door_frame_style == "full_frame_double_door":
+            factory.width = self.width * 2
+        else:
+            factory.width = self.width
         return factory

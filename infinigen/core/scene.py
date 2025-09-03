@@ -144,7 +144,8 @@ class Scene:
             for obj in self.objects:
                 # Skip non-Blender objects
                 if isinstance(obj, dict) or not hasattr(obj, 'type'):
-                    continue
+                    continue # Only real scene objects has attribute "type"
+                #State Objects and Factory Objects do not have attribute "type"
 
                 try:
                     if obj.type != "MESH" or not hasattr(obj, "data"):
@@ -301,9 +302,9 @@ class Scene:
                     interactive_cats.append(category)
         return len(set(interactive_cats)) / max(1, self.get_category_count())
 
-    def get_object_density(self):
+    def get_object_density(self, floor_area = None):
         # self.objects: get the total number of all objects in the scene
-        return len(self.objects) / max(1e-4, self.get_floor_area())
+        return len(self.objects) / max(1e-4, floor_area)
 
     def get_spatial_entropy(self):
         # Use Shannon Entropy to measure spatial distribution
@@ -328,7 +329,7 @@ class Scene:
         max_entropy = np.log(len(p))  # max possible entropy
         return entropy/max_entropy if max_entropy > 0 else 0
 
-    def get_interactive_object_density(self):
+    def get_interactive_object_density(self, floor_area = None):
         """Computes the density of interactive objects per unit floor area."""
         interactive_count = 0
         for obj in self.objects:
@@ -340,10 +341,10 @@ class Scene:
                 is_interactive = obj.get("is_interactive", False) if hasattr(obj, 'get') else False
             if is_interactive:
                 interactive_count += 1
-        return interactive_count / max(1e-4, self.get_floor_area())
+        return interactive_count / max(1e-4, floor_area)
 
     def get_interactive_object_proportion(self):
-        """Computes the proportion of interactive objects in the scene."""
+        """Computes the proportion of interactive instances in the scene."""
         if not self.objects:
             return 0.0
         interactive_count = 0
@@ -418,8 +419,8 @@ class Scene:
                 
                 # if no custom properties, then calculate it
                 if poly_count is None:
-                    if (hasattr(obj, 'data') and 
-                        hasattr(obj.data, 'polygons') and 
+                    if (hasattr(obj, 'data') and
+                        hasattr(obj.data, 'polygons') and
                         obj.type == "MESH"):
                         poly_count = len(obj.data.polygons)
                     else:

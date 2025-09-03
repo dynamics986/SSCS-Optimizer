@@ -565,6 +565,8 @@ class BayesianOptimizer:
             # SSCS-aligned parameters (Visual Diversity - VD)
             'material_diversity_target': np.random.uniform(0.2, 0.9),
             'geometry_complexity_target': np.random.uniform(0.1, 0.8),
+            'floor_area_target': np.random.uniform(200, 800),
+            'surface_area_target': np.random.uniform(2000, 8000),
             
             # Original parameters
             'furniture_fullness_pct': np.random.uniform(0.2, 0.9),
@@ -598,18 +600,20 @@ class BayesianOptimizer:
             # SSCS-aligned parameters (Visual Diversity - VD)
             'material_diversity_target': params[7],
             'geometry_complexity_target': params[8],
+            'floor_area_target': params[9],
+            'surface_area_target': params[10],
             
             # Original parameters
-            'furniture_fullness_pct': params[9],
-            'obj_interior_obj_pct': params[10],
-            'obj_on_storage_pct': params[11],
-            'obj_on_nonstorage_pct': params[12],
-            'painting_area_per_room_area': params[13],
-            'has_tv': bool(params[14]),
-            'has_aquarium_tank': bool(params[15]),
-            'has_birthday_balloons': bool(params[16]),
-            'has_cocktail_tables': bool(params[17]),
-            'has_kitchen_barstools': bool(params[18]),
+            'furniture_fullness_pct': params[11],
+            'obj_interior_obj_pct': params[12],
+            'obj_on_storage_pct': params[13],
+            'obj_on_nonstorage_pct': params[14],
+            'painting_area_per_room_area': params[15],
+            'has_tv': bool(params[16]),
+            'has_aquarium_tank': bool(params[17]),
+            'has_birthday_balloons': bool(params[18]),
+            'has_cocktail_tables': bool(params[19]),
+            'has_kitchen_barstools': bool(params[20]),
         }
     
     def _evaluate_params(self, params, scene_seed, output_folder, sscs_calc, target_sscs=None):
@@ -680,6 +684,8 @@ class BayesianOptimizer:
                 # SSCS-aligned parameters (Layout Complexity - LC)
                 params.get('spatial_distribution_spread', 0.5),
                 params.get('room_utilization_balance', 0.5),
+                params.get('floor_area_target', 500),
+                params.get('surface_area_target', 5000),
                 
                 # SSCS-aligned parameters (Functional Properties - FP)
                 params.get('interactive_object_ratio', 0.5),
