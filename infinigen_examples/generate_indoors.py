@@ -62,13 +62,8 @@ from . import (
 )
 from infinigen.core.constraints.example_solver.sscs_calculator import SSCSCalculator
 
-# Bayesian optimization availability check
-try:
-    from skopt import Optimizer
-    BAYESIAN_OPT_AVAILABLE = True
-except ImportError:
-    BAYESIAN_OPT_AVAILABLE = False
-    print("Warning: scikit-optimize not available. Using fallback optimization.")
+
+from skopt import Optimizer
 
 logger = logging.getLogger(__name__)
 
@@ -585,7 +580,7 @@ class BayesianOptimizer:
         # Try to use global optimizer from home.py first
         self.global_optimizer = home_constraints.get_global_optimizer()
         
-        if BAYESIAN_OPT_AVAILABLE and self.global_optimizer is None:
+        if self.global_optimizer is None:
             self.optimizer = Optimizer(
                 dimensions=param_space,
                 base_estimator="GP",

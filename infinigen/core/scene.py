@@ -15,16 +15,6 @@ class InteractionType:
     KNOB_TURN = "knob_turn"
 
 class Scene:
-    def __init__(self, objects=None):
-        if objects is not None:
-            self.objects = objects
-        else:
-            try:
-                import bpy
-                self.objects = list(bpy.context.scene.objects)
-            except (ImportError, AttributeError):
-                self.objects = []
-    
     def __getstate__(self):
         """Return state for pickle serialization"""
         # Only serialize object names and basic attributes, not the actual Blender objects

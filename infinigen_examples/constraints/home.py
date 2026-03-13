@@ -14,7 +14,6 @@ from numpy.random import uniform
 
 logger = logging.getLogger(__name__)
 
-from infinigen.assets import static_assets
 from infinigen.assets.objects import (
     appliances,
     bathroom,
@@ -37,15 +36,9 @@ from infinigen.core.tags import Semantics, Subpart
 from . import util as cu
 from .semantics import home_asset_usage
 
-# Bayesian optimization imports
-try:
-    from skopt import Optimizer
-    from skopt.space import Real, Integer
-    BAYESIAN_OPT_AVAILABLE = True
-except ImportError:
-    BAYESIAN_OPT_AVAILABLE = False
-    print("Warning: scikit-optimize not available. Using fallback parameter sampling.")
-
+from skopt import Optimizer
+from skopt.space import Real, Integer
+    
 # Global optimizer instance
 _global_optimizer = None
 _optimization_history = []
@@ -83,15 +76,6 @@ def get_param_names():
         'has_cocktail_tables',
         'has_kitchen_barstools',
     ]
-'''
-def validate_param_count():
-    """Validate that the parameter count is correct (should be 19)"""
-    param_count = get_param_count()
-    expected_count = 21  # 11 SSCS-aligned + 10 original
-    if param_count != expected_count:
-        print(f"Warning: Expected {expected_count} parameters, got {param_count}")
-    return param_count == expected_count
-'''
 
 def get_param_count():
     """Get the number of parameters in the parameter space"""
@@ -134,7 +118,7 @@ def get_param_space():
 def get_global_optimizer():
     """Get global Bayesian optimizer instance"""
     global _global_optimizer
-    if _global_optimizer is None and BAYESIAN_OPT_AVAILABLE:
+    if _global_optimizer is None:
         # Define parameter space with all SSCS-related parameters
         param_space = get_param_space()
         _global_optimizer = Optimizer(
@@ -217,7 +201,7 @@ def linear_interpolation(target_sscs):
     # S_LC is too large -> needs smaller alpha
     alpha_lc = np.clip(alpha_final ** 1.5, 0, 1)  # Power > 1 to pull towards lower values
     # S_FP is too small -> needs larger alpha
-    alpha_fp = np.clip(alpha_final ** 0.75, 0, 1) # Power < 1 to pull towards higher values
+    # alpha_fp = np.clip(alpha_final ** 0.75, 0, 1) # Power < 1 to pull towards higher values
     
     return dict(
         # OD parameters
@@ -1950,7 +1934,7 @@ def _estimate_current_sscs(params):
     # Calculate estimated SSCS components based on new definitions from sscs_calculator.py
     C_max = 25
     I_max = 500
-    S_max = 8000
+    # S_max = 8000
     F_max = 4000
     S_OD = 0.45 * (category_diversity / C_max) + 0.55 * (instance_density / I_max)
     S_LC = 0.5 * spatial_spread + 0.5 * (floor_area/F_max)
