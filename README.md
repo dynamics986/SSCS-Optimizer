@@ -19,7 +19,7 @@ While Infinigen provides rich control over scene generation through numerous par
 ### Key Features
 
 - **Target-driven Generation**: Specify desired SSCS (0-1 scale), get optimized scene
-- **Bayesian Optimization**: Automatically tunes 7 key parameters to meet complexity targets
+- **Bayesian Optimization**: Automatically tunes 9 key parameters to meet complexity targets
 - **Modular Complexity Metrics**: Four independent components with customizable weights
 - **Navigation-focused Design**: Optimized for geometric and spatial properties
 
