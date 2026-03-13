@@ -80,10 +80,14 @@ def static_category_factory(
             if imported_obj:
                 # Print message when static asset has been successfully placed in the scene
                 category_name = os.path.basename(self.path_to_assets)
-                print(f"Static asset '{category_name}' (file: {self.asset_file}) has been placed in the scene!")
+                print(f" ✅ Static asset '{category_name}' (file: {self.asset_file}) has been successfully placed in the scene!")
+                print(f" 📍 Location: ({imported_obj.location.x:.2f}, {imported_obj.location.y:.2f}, {imported_obj.location.z:.2f})")
+                print(f" \n\n\n\n")
+                if self.tag_support:
+                    print(f" 🏷️  Support surfaces tagged: Yes")
                 return imported_obj
             else:
-                raise ValueError(f"Failed to import asset: {self.asset_file}")
+                raise ValueError(f"Failed to import asset: {self.asset_file} \n ❌ \n")
 
     return StaticCategoryFactory
 
@@ -96,10 +100,20 @@ StaticSofaFactory = static_category_factory(
 StaticTableFactory = static_category_factory(
     "infinigen/assets/static_assets/source/Table"
 )
+
 StaticShelfFactory = static_category_factory(
     "infinigen/assets/static_assets/source/Shelf", tag_support=True, z_dim=2
 )
 '''
-StaticLabubuFactory = static_category_factory(
-    "infinigen/assets/static_assets/source/Labubu", z_dim=0.4
+StaticBasketballFactory = static_category_factory(
+    "infinigen/assets/static_assets/source/Basketball", z_dim=0.2
+)
+StaticFootballFactory = static_category_factory(
+    "infinigen/assets/static_assets/source/Football", z_dim=0.2
+)
+StaticVolleyballFactory = static_category_factory(
+    "infinigen/assets/static_assets/source/Volleyball", z_dim=0.2
+)
+StaticTennisFactory = static_category_factory(
+    "infinigen/assets/static_assets/source/Tennis", z_dim=0.2
 )

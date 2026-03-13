@@ -3,6 +3,9 @@ from .static_category import (
     # StaticShelfFactory,
     # StaticSofaFactory,
     # StaticTableFactory, 
-    StaticLabubuFactory,
+    StaticBasketballFactory,
+    StaticFootballFactory,
+    StaticVolleyballFactory,
+    StaticTennisFactory,
     static_category_factory,
 )

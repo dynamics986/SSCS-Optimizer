@@ -424,6 +424,7 @@ class BlueprintSolidifier:
         obj.vertex_groups.remove(obj.vertex_groups["visible_"])
         return obj
 
+    # handles all interior doors
     def make_interior_cutters(self, neighbours, shared_edges, segments, exterior):
         name_groups = {}
         for k in shared_edges:
@@ -454,6 +455,9 @@ class BlueprintSolidifier:
                     )
                 else:
                     fn = "door" if k in neighbours[l] else "none"
+                # added by dynamics986 to remove the doors in the indoor scenes
+                # if fn == "door":
+                #     fn = "open"
                 match fn:
                     case "open":
                         open_cutters[k][l] = open_cutters[l][k] = self.make_open_cutter(

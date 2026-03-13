@@ -1,4 +1,4 @@
-# Bayesian optimization libraries for SSCS target matching
+# Bayesian optimization libraries
 scikit-optimize>=0.9.0
 scikit-learn>=1.0.0
 numpy>=1.21.0

@@ -68,13 +68,20 @@ def home_asset_usage():
         table_decorations.VaseFactory,
         tableware.BowlFactory,
         tableware.PotFactory,
-        static_assets.StaticLabubuFactory,
+        static_assets.StaticBasketballFactory,
+        static_assets.StaticFootballFactory,
+        static_assets.StaticVolleyballFactory,
+        static_assets.StaticTennisFactory,
     }
 
     used_as[Semantics.OfficeShelfItem] = {
         table_decorations.BookStackFactory,
         table_decorations.BookColumnFactory,
         elements.NatureShelfTrinketsFactory,
+        static_assets.StaticBasketballFactory,
+        static_assets.StaticFootballFactory,
+        static_assets.StaticVolleyballFactory,
+        static_assets.StaticTennisFactory,
     }
 
     used_as[Semantics.KitchenCounterItem] = set().union(

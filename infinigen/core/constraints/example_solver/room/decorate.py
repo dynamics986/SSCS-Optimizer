@@ -370,15 +370,9 @@ def populate_doors(
             if uniform() > door_chance:
                 continue
             if all_open:
-                rot_z = uniform(0.93, 1.93)
+                rot_z = 1.99
             else:
-                rot_p = uniform()
-                if rot_p < 0.5:
-                    rot_z = uniform(0, 0.1)
-                elif rot_p < 0.7:
-                    rot_z = uniform(0.93, 1.03)
-                else:
-                    rot_z = uniform(0, 1)
+                rot_z = 0.01
             rot_z *= np.pi / 2
 
             door = factory(int(j))

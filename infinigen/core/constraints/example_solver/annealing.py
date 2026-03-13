@@ -226,7 +226,7 @@ class SimulatedAnnealingSolver:
     def curr_temp(self) -> float:
         temp = self.initial_temp * self.cooling_rate**self.curr_iteration
         temp = np.clip(temp, self.final_temp, self.initial_temp)
-        # appended by Francis
+        # appended by dynamics986
         ### temp = temp * self.dynamic_temp_factor
         return temp
 

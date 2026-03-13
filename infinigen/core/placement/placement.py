@@ -8,7 +8,7 @@ import re
 
 import bpy
 import gin
-import mathutils
+import mathutils # type: ignore
 import numpy as np
 from tqdm import tqdm
 

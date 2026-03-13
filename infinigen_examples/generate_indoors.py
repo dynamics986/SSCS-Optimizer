@@ -515,6 +515,54 @@ def compose_indoors(output_folder: Path, scene_seed: int, target_sscs=None, **ov
 
     p.save_results(output_folder / "pipeline_coarse.csv")
 
+    # Compute and write SSCS metric and submetrics for this generated scene
+    try:
+        from infinigen.core.scene import Scene
+
+        scene = Scene()
+
+        # Gather raw measurements
+        N_cat = scene.get_category_count()
+        N_inst = scene.get_instance_count()
+        E_spatial = scene.get_spatial_entropy()
+        Floor_area = scene.get_floor_area()
+
+        # Normalization constants should match SSCSCalculator defaults
+        C_max = 25.0
+        I_max = 500.0
+        F_max = 4000.0
+
+        S_OD = 0.45 * (N_cat / C_max) + 0.55 * (N_inst / I_max)
+        S_LC = 0.5 * E_spatial + 0.5 * (Floor_area / F_max)
+
+        # Clamp
+        S_OD = min(max(S_OD, 0.0), 1.0)
+        S_LC = min(max(S_LC, 0.0), 1.0)
+
+        SSCS = 0.5 * S_OD + 0.5 * S_LC
+
+        metric_path = output_folder / "metric.txt"
+        with open(metric_path, "w") as f:
+            f.write(f"SSCS: {SSCS:.6f}\n")
+            f.write(f"S_OD: {S_OD:.6f}\n")
+            f.write(f"S_LC: {S_LC:.6f}\n")
+            f.write("\n")
+            f.write(f"N_categories: {N_cat}\n")
+            # print category names
+            try:
+                cats = scene.get_categories()
+                f.write("Categories: ")
+                f.write(", ".join(cats))
+                f.write("\n")
+            except Exception:
+                pass
+            f.write(f"N_instances: {N_inst}\n")
+            f.write(f"Spatial_entropy: {E_spatial:.6f}\n")
+            f.write(f"Floor_area: {Floor_area:.6f}\n")
+        logger.info(f"Wrote SSCS metrics to {metric_path}")
+    except Exception as e:
+        logger.exception(f"Failed to compute/write SSCS metrics: {e}")
+
     return {
         "height_offset": height,
         "whole_bbox": house_bbox,
@@ -550,23 +598,23 @@ class BayesianOptimizer:
         """Sample random parameters with SSCS-aligned parameters"""
         return {
             # SSCS-aligned parameters (Object Diversity - OD)
-            'category_diversity_target': np.random.uniform(0.1, 0.8),
+            #'category_diversity_target': np.random.uniform(0.1, 0.8),
             'instance_density_target': np.random.uniform(0.2, 1.0),
             'interactive_category_ratio': np.random.uniform(0.1, 0.9),
             
             # SSCS-aligned parameters (Layout Complexity - LC)
             'spatial_distribution_spread': np.random.uniform(0.1, 0.9),
-            'room_utilization_balance': np.random.uniform(0.2, 0.8),
-            
+            # 'room_utilization_balance': np.random.uniform(0.2, 0.8),
+            'floor_area_target': np.random.uniform(200,2000),
+            # 'surface_area_target': np.random.uniform(2000, 8000),
+
             # SSCS-aligned parameters (Functional Properties - FP)
-            'interactive_object_ratio': np.random.uniform(0.1, 0.8),
-            'interaction_type_diversity': np.random.uniform(0.1, 0.9),
+            # 'interactive_object_ratio': np.random.uniform(0.1, 0.8),
+            # 'interaction_type_diversity': np.random.uniform(0.1, 0.9),
             
             # SSCS-aligned parameters (Visual Diversity - VD)
-            'material_diversity_target': np.random.uniform(0.2, 0.9),
-            'geometry_complexity_target': np.random.uniform(0.1, 0.8),
-            'floor_area_target': np.random.uniform(200, 800),
-            'surface_area_target': np.random.uniform(2000, 8000),
+            # 'material_diversity_target': np.random.uniform(0.2, 0.9),
+            # 'geometry_complexity_target': np.random.uniform(0.1, 0.8),
             
             # Original parameters
             'furniture_fullness_pct': np.random.uniform(0.2, 0.9),
@@ -574,46 +622,23 @@ class BayesianOptimizer:
             'obj_on_storage_pct': np.random.uniform(0.2, 1.0),
             'obj_on_nonstorage_pct': np.random.uniform(0.1, 1.0),
             'painting_area_per_room_area': np.random.uniform(0.1, 2.5),
-            'has_tv': bool(np.random.randint(0, 2)),
-            'has_aquarium_tank': bool(np.random.randint(0, 2)),
-            'has_birthday_balloons': bool(np.random.randint(0, 2)),
-            'has_cocktail_tables': bool(np.random.randint(0, 2)),
-            'has_kitchen_barstools': bool(np.random.randint(0, 2)),
         }
     
     def _convert_to_dict(self, params):
         """Convert continuous parameters to dictionary format with all SSCS-aligned parameters"""
         return {
-            # SSCS-aligned parameters (Object Diversity - OD)
             'category_diversity_target': params[0],
             'instance_density_target': params[1],
-            'interactive_category_ratio': params[2],
-            
-            # SSCS-aligned parameters (Layout Complexity - LC)
-            'spatial_distribution_spread': params[3],
-            'room_utilization_balance': params[4],
-            
-            # SSCS-aligned parameters (Functional Properties - FP)
-            'interactive_object_ratio': params[5],
-            'interaction_type_diversity': params[6],
-            
-            # SSCS-aligned parameters (Visual Diversity - VD)
-            'material_diversity_target': params[7],
-            'geometry_complexity_target': params[8],
-            'floor_area_target': params[9],
-            'surface_area_target': params[10],
+            'spatial_distribution_spread': params[2],
+            'floor_area_target': params[3],
             
             # Original parameters
-            'furniture_fullness_pct': params[11],
-            'obj_interior_obj_pct': params[12],
-            'obj_on_storage_pct': params[13],
-            'obj_on_nonstorage_pct': params[14],
-            'painting_area_per_room_area': params[15],
-            'has_tv': bool(params[16]),
-            'has_aquarium_tank': bool(params[17]),
-            'has_birthday_balloons': bool(params[18]),
-            'has_cocktail_tables': bool(params[19]),
-            'has_kitchen_barstools': bool(params[20]),
+            'furniture_fullness_pct': params[4],
+            'obj_interior_obj_pct': params[5],
+            'obj_on_storage_pct': params[6],
+            'obj_on_nonstorage_pct': params[7],
+            'painting_area_per_room_area': params[8],
+            
         }
     
     def _evaluate_params(self, params, scene_seed, output_folder, sscs_calc, target_sscs=None):
@@ -679,21 +704,20 @@ class BayesianOptimizer:
                 # SSCS-aligned parameters (Object Diversity - OD)
                 params.get('category_diversity_target', 0.5),
                 params.get('instance_density_target', 0.5),
-                params.get('interactive_category_ratio', 0.5),
+                # params.get('interactive_category_ratio', 0.5),
                 
                 # SSCS-aligned parameters (Layout Complexity - LC)
                 params.get('spatial_distribution_spread', 0.5),
-                params.get('room_utilization_balance', 0.5),
-                params.get('floor_area_target', 500),
-                params.get('surface_area_target', 5000),
+                # params.get('room_utilization_balance', 0.5),
+                params.get('floor_area_target', 1000),
                 
                 # SSCS-aligned parameters (Functional Properties - FP)
-                params.get('interactive_object_ratio', 0.5),
-                params.get('interaction_type_diversity', 0.5),
+                # params.get('interactive_object_ratio', 0.5),
+                # params.get('interaction_type_diversity', 0.5),
                 
                 # SSCS-aligned parameters (Visual Diversity - VD)
-                params.get('material_diversity_target', 0.5),
-                params.get('geometry_complexity_target', 0.5),
+                # params.get('material_diversity_target', 0.5),
+                # params.get('geometry_complexity_target', 0.5),
                 
                 # Original parameters
                 params.get('furniture_fullness_pct', 0.5),
@@ -701,11 +725,6 @@ class BayesianOptimizer:
                 params.get('obj_on_storage_pct', 0.5),
                 params.get('obj_on_nonstorage_pct', 0.5),
                 params.get('painting_area_per_room_area', 1.0),
-                safe_bool_to_int('has_tv', False),
-                safe_bool_to_int('has_aquarium_tank', False),
-                safe_bool_to_int('has_birthday_balloons', False),
-                safe_bool_to_int('has_cocktail_tables', False),
-                safe_bool_to_int('has_kitchen_barstools', False),
             ]
             error = abs(sscs - target_sscs)
             self.optimizer.tell(continuous_params, error)

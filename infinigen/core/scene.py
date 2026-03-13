@@ -53,9 +53,9 @@ class Scene:
     def __setstate__(self, state):
         """Restore state from pickle deserialization"""
         self.objects = state.get('objects', [])
-    
-    def get_category_count(self):
-        """Computes the number of unique categories in the scene."""
+
+    def get_categories(self):
+        """Returns a sorted list of unique category names present in the scene."""
         categories = set()
         for obj in self.objects:
             # Handle both Blender objects and serialized object representations
@@ -67,24 +67,27 @@ class Scene:
                 # Blender object
                 obj_name = obj.name
                 category = obj.get("category", None) if hasattr(obj, 'get') else None
-            
+
             # Attempt to derive category from the factory name, which is more specific
             if '(' in obj_name and 'Factory' in obj_name:
                 try:
                     factory_name = obj_name.split('(')[0]
                     if factory_name.endswith('Factory'):
-                        category = factory_name[:-7] # Remove 'Factory'
+                        category = factory_name[:-7]  # Remove 'Factory'
                         categories.add(category)
                         continue
                 except Exception:
                     pass
-            
+
             # Fallback to the original method if the name doesn't match the pattern
             if category is not None:
                 categories.add(category)
-        return len(categories)
+        return sorted(categories)
 
-
+    def get_category_count(self):
+        """Computes the number of unique categories in the scene."""
+        return len(self.get_categories())
+    
     def get_instance_count(self):
         result = len(self.objects)
         return result
